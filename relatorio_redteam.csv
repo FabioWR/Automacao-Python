@@ -1,0 +1,4 @@
+1,Injeção de SQL,Alta,Aberta
+2,Senha Fraca,Media,Aberta
+3,Porta 80 Aberta,Baixa,Fechada
+4,Cross-Site Scripting,Alta,Aberta
