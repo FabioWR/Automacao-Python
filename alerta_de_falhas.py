@@ -2,39 +2,64 @@ import os
 import smtplib
 from email.message import EmailMessage
 from dotenv import load_dotenv
+from datetime import datetime
 
 load_dotenv()
-
 EMAIL_ORIGEM = os.getenv("EMAIL_USER")
 SENHA_APP = os.getenv("EMAIL_PASS")
 EMAIL_DESTINO = os.getenv("EMAIL_DEST")
 
-def enviar_alerta(conteudo):
+def enviar_alerta(tabela_html):
+    agora = datetime.now().strftime("%d/%m/%Y %H:%M")
     msg = EmailMessage()
-    msg['Subject'] = "ALERTA DE SEGURANÇA: Relatório Red Team"
+    msg['Subject'] = f"🚨 RELATÓRIO SOC: Vulnerabilidades - {agora}"
     msg['From'] = EMAIL_ORIGEM
     msg['To'] = EMAIL_DESTINO
-    msg.set_content(f"Atenção Analista Fabio,\nForam encontradas algumas vulnerabilidades críticas:\n{conteudo}")
+    
+    conteudo_html = f"""
+    <html>
+        <body style="font-family: Arial; color: #333;">
+            <h2 style="color: #d9534f;">🛡️ Alerta de Segurança Identificado</h2>
+            <table border="1" style="border-collapse: collapse; width: 100%;">
+                <tr style="background-color: #f2f2f2;">
+                    <th>ID</th><th>Vulnerabilidade</th><th>Severidade</th><th>Status</th>
+                </tr>
+                {tabela_html}
+            </table>
+        </body>
+    </html>
+    """
+    msg.add_alternative(conteudo_html, subtype='html')
 
     with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
         smtp.login(EMAIL_ORIGEM, SENHA_APP)
         smtp.send_message(msg)
-    print("E-mail enviado com sucesso!")
 
-vulnerabilidades_encontradas = ""
+linhas_para_email = ""
 
 try:
-    with open('relatorio_redteam.csv', 'r') as arquivo:
+    with open('relatorio_redteam.csv', 'r', encoding='utf-8') as arquivo:
         linhas = arquivo.readlines()[1:]
+
         for linha in linhas:
             dados = linha.strip().split(',')
-            if dados[2] == "Alta":
-                vulnerabilidades_encontradas += f"- {dados[1]} (ID: {dados[0]})\n"
+            
+            if len(dados) >= 4:
+                vuln_id = dados[0]
+                nome = dados[1]
+                severidade = dados[2].strip()
+                status = dados[3].strip()
+                
+                if severidade == "Alta" and status == "Aberta":
+                    print(f"🔥 Falha encontrada: {nome}")
+                    linhas_para_email += f"<tr><td>{vuln_id}</td><td>{nome}</td><td>{severidade}</td><td>{status}</td></tr>"
 
-    if vulnerabilidades_encontradas:
-        enviar_alerta(vulnerabilidades_encontradas)
+    if linhas_para_email:
+        print("📧 Enviando relatório para o e-mail...")
+        enviar_alerta(linhas_para_email)
+        print("✅ Sucesso!")
     else:
-        print("Tudo limpo. Nenhuma vulnerabilidade alta hoje.")
+        print("✅ Nenhuma vulnerabilidade 'Alta' e 'Aberta' no momento.")
 
 except FileNotFoundError:
-    print("Erro: O arquivo de relatório não foi encontrado.")
+    print("❌ Erro: O arquivo 'relatorio_redteam.csv' não foi encontrado.")
