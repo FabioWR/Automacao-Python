@@ -4,6 +4,9 @@ from email.message import EmailMessage
 from dotenv import load_dotenv
 from datetime import datetime
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+CAMINHO_CSV = os.path.join(BASE_DIR, 'relatorio_redteam.csv')
+
 load_dotenv()
 EMAIL_ORIGEM = os.getenv("EMAIL_USER")
 SENHA_APP = os.getenv("EMAIL_PASS")
@@ -38,7 +41,7 @@ def enviar_alerta(tabela_html):
 linhas_para_email = ""
 
 try:
-    with open('relatorio_redteam.csv', 'r', encoding='utf-8') as arquivo:
+    with open(CAMINHO_CSV, 'r', encoding='utf-8') as arquivo:
         linhas = arquivo.readlines()[1:]
 
         for linha in linhas:
